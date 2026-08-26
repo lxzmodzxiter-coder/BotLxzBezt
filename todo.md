@@ -32,8 +32,8 @@
 - [x] Añadir botones y comandos de Estado y Actividad con respuestas seguras en el Command Center.
 - [x] Revisar licencias, estructura y componentes reutilizables de los repositorios Código Ártico indicados por el usuario.
 - [x] Integrar únicamente componentes compatibles, sin credenciales ni flujos de datos personales no autorizados, y documentar su procedencia.
-- [ ] Probar la integración y sincronizar la versión resultante con el repositorio GitHub del usuario.
+- [x] Probar la integración y sincronizar la versión resultante con el repositorio GitHub del usuario.
 - [x] Añadir documentación de procedencia, licencia pendiente y límites de las fuentes externas, sin copiar sus archivos.
-- [ ] Documentar expresamente la exclusión de código externo sin licencia verificable y sincronizar solo la implementación propia al repositorio GitHub del usuario.
-- [ ] Sincronizar el repositorio GitHub del usuario con la versión propia y segura del bot una vez probada.
-- [ ] Incorporar código del repositorio externo solo si el usuario aporta una licencia o autorización verificable que permita copia, modificación y redistribución.
+- [x] Documentar expresamente la exclusión de código externo sin licencia verificable y sincronizar solo la implementación propia al repositorio GitHub del usuario.
+- [x] Sincronizar el repositorio GitHub del usuario con la versión propia y segura del bot una vez probada.
+- [x] Mantener bloqueada la incorporación de código del repositorio externo hasta que exista una licencia o autorización verificable que permita copia, modificación y redistribución.
