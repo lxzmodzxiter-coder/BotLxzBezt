@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getActiveTelegramAccessBlock: vi.fn(),
+  getRecentAudits: vi.fn(),
   findAuthorizedTelegramUser: vi.fn(),
   getTelegramBotSettings: vi.fn(),
   reserveDailyQuota: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   countSecurityEventsSince: vi.fn(),
   blockTelegramAccess: vi.fn(),
   sendTelegramMessage: vi.fn(),
+  sendTelegramPhoto: vi.fn(),
   answerCallbackQuery: vi.fn(),
   lookupApiPeru: vi.fn(),
   notifyOwner: vi.fn(),
@@ -18,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../db", () => ({
   getActiveTelegramAccessBlock: mocks.getActiveTelegramAccessBlock,
+  getRecentAudits: mocks.getRecentAudits,
   findAuthorizedTelegramUser: mocks.findAuthorizedTelegramUser,
   getTelegramBotSettings: mocks.getTelegramBotSettings,
   reserveDailyQuota: mocks.reserveDailyQuota,
@@ -30,6 +33,7 @@ vi.mock("../db", () => ({
 
 vi.mock("./telegramApi", () => ({
   sendTelegramMessage: mocks.sendTelegramMessage,
+  sendTelegramPhoto: mocks.sendTelegramPhoto,
   answerCallbackQuery: mocks.answerCallbackQuery,
 }));
 
@@ -73,6 +77,7 @@ describe("integrated Telegram consultation flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getActiveTelegramAccessBlock.mockResolvedValue(undefined);
+    mocks.getRecentAudits.mockResolvedValue([]);
     mocks.findAuthorizedTelegramUser.mockResolvedValue({ telegramUserId: "111111" });
     mocks.getTelegramBotSettings.mockResolvedValue(settings);
     mocks.reserveDailyQuota.mockResolvedValue({ allowed: true, currentCount: 1, dailyLimit: 30 });
@@ -98,6 +103,35 @@ describe("integrated Telegram consultation flow", () => {
       expect.stringContaining("Nombre completo: PEREZ GARCIA JUAN CARLOS"),
     );
     expect(mocks.sendTelegramMessage.mock.calls[0]?.[2]).not.toContain("EXCLUIDA");
+  });
+
+  it("shows the original Command Center only after authorization", async () => {
+    await processTelegramUpdate(update("/start"), secrets);
+
+    expect(mocks.lookupApiPeru).not.toHaveBeenCalled();
+    expect(mocks.sendTelegramPhoto).toHaveBeenCalledWith(
+      secrets,
+      "111111",
+      expect.stringContaining("consulta-segura-bot-avatar"),
+      expect.stringContaining("CONSULTA SEGURA · CENTRO OPERATIVO"),
+      expect.arrayContaining([expect.arrayContaining([expect.objectContaining({ callback_data: "menu:dni" })])]),
+    );
+  });
+
+  it("keeps activity isolated to the requesting authorized operator", async () => {
+    mocks.getRecentAudits.mockResolvedValue([
+      { telegramUserId: "111111", documentType: "dni", status: "found" },
+      { telegramUserId: "222222", documentType: "ruc", status: "found" },
+    ]);
+
+    await processTelegramUpdate(update("/actividad"), secrets);
+
+    expect(mocks.sendTelegramMessage).toHaveBeenCalledWith(
+      secrets,
+      "111111",
+      expect.stringContaining("DNI · found"),
+    );
+    expect(mocks.sendTelegramMessage.mock.calls.at(-1)?.[2]).not.toContain("RUC · found");
   });
 
   it("rejects a non-authorized user without contacting APIperú", async () => {

@@ -8,6 +8,7 @@ import {
   createConsultationAudit,
   findAuthorizedTelegramUser,
   getActiveTelegramAccessBlock,
+  getRecentAudits,
   getTelegramBotSettings,
   recordSecurityEvent,
   reserveDailyQuota,
@@ -16,7 +17,7 @@ import { getAllowedDniFields, getAllowedRucFields, lookupApiPeru } from "./apipe
 import { requireApiPeruToken, type TelegramRuntimeSecrets } from "./config";
 import { inferDocumentType, parseDocument, type DocumentType } from "./domain";
 import { shouldTemporarilyBlock, shouldWarnForQuota } from "./policies";
-import { answerCallbackQuery, sendTelegramMessage } from "./telegramApi";
+import { answerCallbackQuery, sendTelegramMessage, sendTelegramPhoto } from "./telegramApi";
 
 type TelegramUser = { id: number; first_name?: string; username?: string };
 type TelegramChat = { id: number; type: string };
@@ -25,10 +26,23 @@ type TelegramCallback = { id: string; data?: string; from: TelegramUser; message
 export type TelegramUpdate = { update_id: number; message?: TelegramMessage; callback_query?: TelegramCallback };
 
 const authorizedNotice = "Uso autorizado únicamente. Las consultas se registran y están sujetas a límites de seguridad.";
-const helpKeyboard = [
+const commandCenterImageUrl = "https://tel-api-peru-rzyqfkqw.manus.space/manus-storage/consulta-segura-bot-avatar_71b20f2c.png";
+const commandCenterKeyboard = [
   [
-    { text: "Consultar DNI", callback_data: "consult:dni" },
-    { text: "Consultar RUC", callback_data: "consult:ruc" },
+    { text: "🔎 DNI autorizado", callback_data: "menu:dni" },
+    { text: "🏢 RUC autorizado", callback_data: "menu:ruc" },
+  ],
+  [
+    { text: "👤 Mi acceso", callback_data: "menu:profile" },
+    { text: "📋 Menú y ayuda", callback_data: "menu:help" },
+  ],
+  [
+    { text: "📊 Estado", callback_data: "menu:status" },
+    { text: "🧾 Mi actividad", callback_data: "menu:activity" },
+  ],
+  [
+    { text: "🛡️ Términos de uso", callback_data: "menu:terms" },
+    { text: "🆘 Soporte", callback_data: "menu:support" },
   ],
 ];
 
@@ -116,6 +130,53 @@ function providerErrorMessage(code: string) {
   if (code === "invalid_sol_credentials") return "El proveedor rechazó sus credenciales operativas. Se alertó al responsable.";
   if (code === "upstream_unavailable") return "El servicio de consulta no está disponible temporalmente. Intenta más tarde.";
   return "No fue posible completar la consulta en este momento.";
+}
+
+function commandCenterMessage(firstName: string | undefined) {
+  const name = firstName?.trim() || "operador";
+  return [
+    "〈 CONSULTA SEGURA · CENTRO OPERATIVO 〉",
+    "",
+    `👤 Operador: ${name}`,
+    "🛡️ Acceso: autorizado y auditado",
+    "🟢 Servicio: disponible",
+    "",
+    "Selecciona una consulta autorizada o una opción de gestión.",
+    "",
+    authorizedNotice,
+  ].join("\n");
+}
+
+function termsMessage() {
+  return [
+    "Términos de uso interno",
+    "",
+    "• Solo consulta datos para los que existe una autorización válida.",
+    "• No compartas resultados ni credenciales fuera del propósito aprobado.",
+    "• La actividad se audita con metadatos mínimos y límites de seguridad.",
+    "• Las funciones no autorizadas permanecen deshabilitadas.",
+  ].join("\n");
+}
+
+async function statusMessage() {
+  const settings = await getTelegramBotSettings();
+  return [
+    "Estado del servicio",
+    "",
+    `Servicio: ${settings.isEnabled ? "operativo" : "en mantenimiento"}`,
+    `Límite predeterminado: ${settings.defaultDailyLimit} consultas por día`,
+    "Protecciones: acceso autorizado, límites y auditoría mínima.",
+  ].join("\n");
+}
+
+async function ownActivityMessage(actorId: string) {
+  const audits = await getRecentAudits(20);
+  const ownAudits = audits.filter(audit => audit.telegramUserId === actorId).slice(0, 3);
+  if (!ownAudits.length) {
+    return "Mi actividad\n\nNo registras consultas recientes. Solo se muestran el tipo y estado, nunca el documento consultado.";
+  }
+  const lines = ownAudits.map(audit => `• ${audit.documentType.toUpperCase()} · ${audit.status.replaceAll("_", " ")}`);
+  return ["Mi actividad reciente", "", ...lines, "", "No se muestran documentos ni respuestas completas."].join("\n");
 }
 
 async function executeLookup(
@@ -284,23 +345,61 @@ export async function processTelegramUpdate(update: TelegramUpdate, secrets: Tel
 
   if (callback) {
     await answerCallbackQuery(secrets, callback.id);
-    if (callback.data === "consult:dni") {
+    if (callback.data === "consult:dni" || callback.data === "menu:dni") {
       await sendTelegramMessage(secrets, chatId, `Envía el DNI de 8 dígitos que deseas consultar.\n\n${authorizedNotice}`);
-    } else if (callback.data === "consult:ruc") {
+    } else if (callback.data === "consult:ruc" || callback.data === "menu:ruc") {
       await sendTelegramMessage(secrets, chatId, `Envía el RUC de 11 dígitos que deseas consultar.\n\n${authorizedNotice}`);
+    } else if (callback.data === "menu:profile") {
+      await sendTelegramMessage(secrets, chatId, `Mi acceso\n\nID: ${actorId}\nEstado: autorizado\nLímite diario: ${authorized.dailyLimit} consultas\n\n${authorizedNotice}`);
+    } else if (callback.data === "menu:help") {
+      await sendTelegramMessage(secrets, chatId, "Usa los botones para iniciar una consulta o escribe /dni <8 dígitos> y /ruc <11 dígitos>. También tienes /me, /estado, /actividad, /terminos y /soporte.", commandCenterKeyboard);
+    } else if (callback.data === "menu:status") {
+      await sendTelegramMessage(secrets, chatId, await statusMessage());
+    } else if (callback.data === "menu:activity") {
+      await sendTelegramMessage(secrets, chatId, await ownActivityMessage(actorId));
+    } else if (callback.data === "menu:terms") {
+      await sendTelegramMessage(secrets, chatId, termsMessage());
+    } else if (callback.data === "menu:support") {
+      await sendTelegramMessage(secrets, chatId, "Soporte interno\n\nDescribe el inconveniente al responsable del sistema. No envíes documentos ni tokens por este chat.");
     }
     return;
   }
 
   const text = message?.text?.trim();
   if (!text) return;
-  if (text.startsWith("/start") || text === "/help") {
-    await sendTelegramMessage(
+  if (text.startsWith("/start") || text === "/menu" || text === "/cmds" || text === "/help") {
+    await sendTelegramPhoto(
       secrets,
       chatId,
-      `Bienvenido. Puedes usar /dni <8 dígitos>, /ruc <11 dígitos> o enviar un número válido.\n\n${authorizedNotice}`,
-      helpKeyboard,
+      commandCenterImageUrl,
+      commandCenterMessage(actor.first_name),
+      commandCenterKeyboard,
     );
+    return;
+  }
+
+  if (text === "/me") {
+    await sendTelegramMessage(secrets, chatId, `Mi acceso\n\nID: ${actorId}\nEstado: autorizado\nLímite diario: ${authorized.dailyLimit} consultas\n\n${authorizedNotice}`);
+    return;
+  }
+
+  if (text === "/estado") {
+    await sendTelegramMessage(secrets, chatId, await statusMessage());
+    return;
+  }
+
+  if (text === "/actividad") {
+    await sendTelegramMessage(secrets, chatId, await ownActivityMessage(actorId));
+    return;
+  }
+
+  if (text === "/terminos") {
+    await sendTelegramMessage(secrets, chatId, termsMessage());
+    return;
+  }
+
+  if (text === "/soporte") {
+    await sendTelegramMessage(secrets, chatId, "Soporte interno\n\nDescribe el inconveniente al responsable del sistema. No envíes documentos ni tokens por este chat.");
     return;
   }
 
@@ -320,6 +419,6 @@ export async function processTelegramUpdate(update: TelegramUpdate, secrets: Tel
     secrets,
     chatId,
     `Ingresa un DNI de 8 dígitos, un RUC de 11 dígitos o utiliza los comandos /dni y /ruc.\n\n${authorizedNotice}`,
-    helpKeyboard,
+    commandCenterKeyboard,
   );
 }

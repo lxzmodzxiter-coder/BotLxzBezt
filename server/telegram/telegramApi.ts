@@ -35,6 +35,21 @@ export async function sendTelegramMessage(
   });
 }
 
+export async function sendTelegramPhoto(
+  secrets: TelegramRuntimeSecrets,
+  chatId: string,
+  photoUrl: string,
+  caption: string,
+  inlineKeyboard?: Array<Array<{ text: string; callback_data: string }>>,
+) {
+  return telegramRequest(secrets, "sendPhoto", {
+    chat_id: chatId,
+    photo: photoUrl,
+    caption,
+    ...(inlineKeyboard ? { reply_markup: { inline_keyboard: inlineKeyboard } } : {}),
+  });
+}
+
 export async function answerCallbackQuery(
   secrets: TelegramRuntimeSecrets,
   callbackQueryId: string,
