@@ -10,7 +10,7 @@
 - [x] Registrar una auditoría mínima sin guardar las respuestas completas ni más datos personales de los necesarios.
 - [x] Enviar alertas al responsable por intentos repetidos no autorizados, fallos de configuración y consumo anómalo.
 - [x] Crear un panel interno elegante para gestionar usuarios autorizados, límites, actividad reciente y conexión del webhook.
-- [ ] Configurar los secretos de Telegram y APIperú mediante variables de entorno sin exponerlos en el cliente ni en registros.
+- [x] Configurar los secretos de Telegram y APIperú mediante variables de entorno sin exponerlos en el cliente ni en registros.
 - [x] Escribir y ejecutar pruebas Vitest de validación, autorización, límites, respuestas de APIperú y flujo del webhook.
 - [x] Verificar el panel en escritorio y móvil, revisar registros de ejecución y guardar un checkpoint listo para publicación.
 - [x] Modelar una tabla de configuración operativa del bot para estado, umbrales de alertas y referencia segura de la conexión del webhook.
@@ -23,8 +23,8 @@
 - [x] Revisar explícitamente el repositorio autorizado de Código Ártico y registrar la exclusión formal de la documentación Postman no verificable.
 - [x] Completar las pruebas integradas de límite diario, deduplicación persistente de updates y códigos transitorios de APIperú.
 - [x] Verificar con la base de datos real que un update de Telegram se registra una vez y se rechaza como duplicado en el webhook.
-- [ ] Guardar y validar el token de APIperú en el entorno seguro, conectar el webhook publicado y comprobar el flujo real con un usuario autorizado.
-- [ ] Corregir la disponibilidad del token de APIperú en producción y verificar una consulta autorizada de extremo a extremo.
+- [x] Guardar y validar el token de APIperú en el entorno seguro, conectar el webhook publicado y comprobar el flujo real con un usuario autorizado.
+- [x] Corregir la disponibilidad del token de APIperú en producción y verificar una consulta autorizada de extremo a extremo.
 - [x] Revisar los elementos públicos de @Yinwodataa_bot y adaptar de forma segura sus patrones de comandos, botones y medios disponibles al bot interno.
 - [x] Implementar una cabecera Command Center y una cuadrícula de botones limitada a consultas DNI/RUC, estado, actividad y ayuda autorizadas.
 - [x] Añadir comandos propios de perfil, menú, términos y soporte, con textos originales y sin clonar identidad o material de terceros.
