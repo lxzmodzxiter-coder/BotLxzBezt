@@ -36,3 +36,4 @@
 - [x] Añadir documentación de procedencia, licencia pendiente y límites de las fuentes externas, sin copiar sus archivos.
 - [ ] Documentar expresamente la exclusión de código externo sin licencia verificable y sincronizar solo la implementación propia al repositorio GitHub del usuario.
 - [ ] Sincronizar el repositorio GitHub del usuario con la versión propia y segura del bot una vez probada.
+- [ ] Incorporar código del repositorio externo solo si el usuario aporta una licencia o autorización verificable que permita copia, modificación y redistribución.
