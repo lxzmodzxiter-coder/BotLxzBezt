@@ -23,3 +23,5 @@
 - [x] Revisar explícitamente el repositorio autorizado de Código Ártico y registrar la exclusión formal de la documentación Postman no verificable.
 - [x] Completar las pruebas integradas de límite diario, deduplicación persistente de updates y códigos transitorios de APIperú.
 - [x] Verificar con la base de datos real que un update de Telegram se registra una vez y se rechaza como duplicado en el webhook.
+- [ ] Guardar y validar el token de APIperú en el entorno seguro, conectar el webhook publicado y comprobar el flujo real con un usuario autorizado.
+- [ ] Corregir la disponibilidad del token de APIperú en producción y verificar una consulta autorizada de extremo a extremo.
