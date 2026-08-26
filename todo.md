@@ -1,0 +1,25 @@
+# Project TODO
+
+- [x] Modelar las tablas de usuarios autorizados de Telegram, configuración operativa, auditoría de consultas y alertas de seguridad.
+- [x] Aplicar la migración de base de datos para los controles de acceso, límites y trazabilidad.
+- [x] Implementar validadores puros para DNI de 8 dígitos, RUC de 11 dígitos y límites por usuario.
+- [x] Implementar el cliente de APIperú únicamente en el servidor, con token secreto, campos permitidos y manejo de códigos oficiales.
+- [x] Implementar un endpoint de webhook de Telegram validado con un secreto de ruta y procesamiento idempotente de actualizaciones.
+- [x] Implementar comandos y botones de Telegram para consultas autorizadas de DNI y RUC, con aviso de uso autorizado.
+- [x] Aplicar autorización por identificador de Telegram, límites de consultas por usuario y bloqueo temporal ante abuso.
+- [x] Registrar una auditoría mínima sin guardar las respuestas completas ni más datos personales de los necesarios.
+- [x] Enviar alertas al responsable por intentos repetidos no autorizados, fallos de configuración y consumo anómalo.
+- [x] Crear un panel interno elegante para gestionar usuarios autorizados, límites, actividad reciente y conexión del webhook.
+- [ ] Configurar los secretos de Telegram y APIperú mediante variables de entorno sin exponerlos en el cliente ni en registros.
+- [x] Escribir y ejecutar pruebas Vitest de validación, autorización, límites, respuestas de APIperú y flujo del webhook.
+- [x] Verificar el panel en escritorio y móvil, revisar registros de ejecución y guardar un checkpoint listo para publicación.
+- [x] Modelar una tabla de configuración operativa del bot para estado, umbrales de alertas y referencia segura de la conexión del webhook.
+- [x] Generar y aplicar la migración de configuración operativa, verificando la cobertura final de acceso, límites, trazabilidad y alertas.
+- [x] Añadir un segmento de ruta secreto derivado de credenciales internas al webhook, además de validar el encabezado secreto de Telegram.
+- [x] Implementar bloqueo temporal persistente ante intentos no autorizados repetidos y registrarlo como evento de seguridad.
+- [x] Ampliar las pruebas Vitest para políticas de autorización, límites, deduplicación, códigos de APIperú y validación de webhook.
+- [x] Revisar la documentación y el repositorio autorizados, usando únicamente endpoints que respeten los campos permitidos y las restricciones de privacidad.
+- [x] Añadir pruebas integradas de autorización, bloqueo temporal, límite diario, deduplicación persistente y mapeo de respuestas de APIperú.
+- [x] Revisar explícitamente el repositorio autorizado de Código Ártico y registrar la exclusión formal de la documentación Postman no verificable.
+- [x] Completar las pruebas integradas de límite diario, deduplicación persistente de updates y códigos transitorios de APIperú.
+- [x] Verificar con la base de datos real que un update de Telegram se registra una vez y se rechaza como duplicado en el webhook.

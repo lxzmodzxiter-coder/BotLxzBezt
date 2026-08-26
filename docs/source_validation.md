@@ -1,0 +1,13 @@
+# Validación de fuentes autorizadas
+
+El usuario autorizó como fuente principal la documentación de **APIperú**, el enlace de documentación denominado **LEDER DATA APIS**, el repositorio público de referencia de Código Ártico y una serie de videos de TikTok previamente analizados. La integración de producción se limita a APIperú porque su documentación oficial describe endpoints de DNI y RUC, autenticación Bearer, códigos estables de respuesta y campos que se pueden filtrar en el servidor. La documentación de APIperú aclara que la consulta de DNI no se conecta directamente a RENIEC y se alimenta del padrón reducido de SUNAT y otras fuentes públicas; por ello el bot presenta resultados como datos del proveedor y no como una certificación registral.
+
+El enlace de Postman se abrió correctamente, pero su contenido técnico no se cargó en el navegador ni en la extracción textual disponible; por esa razón queda **formalmente excluido** de la implementación hasta que exista una referencia verificable de sus rutas, autenticación y política de datos. El repositorio de Código Ártico se revisó como una aplicación Laravel con directorios `app`, `routes`, `config`, `database` y un archivo `.env.example`. Su README mantiene el texto de plantilla de Laravel y no documenta una política de privacidad, contrato de proveedor ni controles de acceso propios. Por ello no se ejecutará ni se copiará su código ni sus configuraciones; solo confirma el patrón general de separar rutas, configuración y base de datos, ya cubierto por la implementación propia. El repositorio `lxzmodzxiter-coder/BotLxzBezt` está vacío, así que no se clona ni se ejecuta contenido de ese repositorio. Los videos de TikTok se consideran únicamente material de contexto; no definen el contrato técnico ni los campos que muestra el bot.
+
+| Fuente | Estado | Uso previsto |
+| --- | --- | --- |
+| [APIperú Docs](https://docs.apiperu.dev/) | Validada | Fuente de producción para DNI/RUC, con token Bearer solo en servidor. |
+| [LEDER DATA APIS](https://documenter.getpostman.com/view/23072272/2sA3s3GB1K) | Pendiente de contenido legible | No se usará sin revisar su contrato y autorización específica. |
+| [Código Ártico](https://github.com/CodigoArtico/consulta-gratis-ruc-sunat-y-dni-reniec-codart-api) | Revisado, excluido de producción | Proyecto Laravel con README genérico y `.env.example`; no se ejecuta ni se copia código o configuración. |
+| [BotLxzBezt](https://github.com/lxzmodzxiter-coder/BotLxzBezt) | Repositorio vacío | Destino potencial de código, sin contenido que reutilizar por ahora. |
+| Videos de TikTok | Referencia contextual | No se usan como fuente de endpoints, credenciales ni políticas de datos. |
