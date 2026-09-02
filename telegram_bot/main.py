@@ -32,6 +32,16 @@ logger = logging.getLogger(__name__)
 PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 COOLDOWN_SECONDS = int(os.getenv("COOLDOWN_SECONDS", "60"))
 DB_PATH = Path(os.getenv("SQLITE_PATH", "telegram_bot.sqlite3"))
+SIMULATION_LABEL = "SIMULACIÓN LOCAL — NO SE REALIZA NINGÚN ENVÍO EXTERNO"
+SIMULATED_CAUSES = (
+    "spam o comunicaciones no solicitadas (escenario de prueba)",
+    "suplantación de identidad (escenario de prueba)",
+    "fraude o engaño financiero (escenario de prueba)",
+    "acoso o amenazas (escenario de prueba)",
+    "distribución de malware (escenario de prueba)",
+    "contenido ilegal (escenario de prueba)",
+    "posible vulneración de privacidad (escenario de prueba)",
+)
 
 
 class Flow(StatesGroup):
@@ -121,6 +131,20 @@ def header(kind: str, phone: str) -> str:
     safe_phone = html.escape(phone)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     return f"<b>BORRADOR DE {kind}</b>\nNúmero afectado: <code>{safe_phone}</code>\nGenerado: {now}\n\n"
+
+
+def build_simulated_package(action: str, phone: str, template: str) -> dict[str, object]:
+    """Construye un paquete en memoria; nunca hace una petición de red."""
+    package: dict[str, object] = {
+        "mode": "local-simulation",
+        "action": action,
+        "phone": phone,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "template_length": len(template),
+    }
+    if action == "BAN":
+        package["test_causes"] = list(SIMULATED_CAUSES)
+    return package
 
 
 def ban_draft(phone: str) -> str:
@@ -240,10 +264,16 @@ async def handle_phone(message: Message, state: FSMContext, action: str) -> None
         await message.answer(f"Espera {remaining} segundos antes de crear otro borrador.")
         await state.clear()
         return
+    draft = ban_draft(phone) if action == "BAN" else unban_draft(phone)
+    package = build_simulated_package(action, phone, draft)
     database.record(user.id, user.username, action, phone)
     await state.clear()
-    draft = ban_draft(phone) if action == "BAN" else unban_draft(phone)
-    await message.answer(draft, reply_markup=menu())
+    await message.answer(
+        f"<b>{SIMULATION_LABEL}</b>\n"
+        f"Paquete ficticio preparado: <code>{package['action']}</code> · "
+        f"{package['template_length']} caracteres\n\n" + draft,
+        reply_markup=menu(),
+    )
 
 
 @router.message(Flow.waiting_ban_phone)
