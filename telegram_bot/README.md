@@ -29,7 +29,7 @@ python -m telegram_bot.main
 
 ## Despliegue en Railway
 
-Crea un proyecto nuevo en Railway y selecciona **Deploy from GitHub Repo**. El repositorio ya incluye `Dockerfile` y `railway.toml`, por lo que Railway podrá construir el servicio y ejecutar el bot automáticamente. En la sección **Variables**, añade `BOT_TOKEN` con el token nuevo generado en `@BotFather`; no lo coloques en el repositorio. Puedes añadir opcionalmente `MAX_DAILY_DRAFTS` y `LOG_LEVEL`. Después pulsa **Deploy** y revisa los logs: el proceso debe permanecer activo sin mostrar el token.
+Crea un proyecto nuevo en Railway y selecciona **Deploy from GitHub Repo**. El repositorio ya incluye `Dockerfile` y `railway.toml`, por lo que Railway podrá construir el servicio y ejecutar el bot automáticamente. En la sección **Variables**, añade `BOT_TOKEN` con el token nuevo generado en `@BotFather`; no lo coloques en el repositorio. Puedes añadir opcionalmente `COOLDOWN_SECONDS`, `SQLITE_PATH` y `LOG_LEVEL`. `COOLDOWN_SECONDS` controla el tiempo mínimo entre operaciones por usuario; `SQLITE_PATH` puede apuntar a un volumen persistente de Railway para conservar el historial después de reinicios. Después pulsa **Deploy** y revisa los logs: el proceso debe permanecer activo sin mostrar el token.
 
 Si Railway no detecta el archivo automáticamente, establece el comando de inicio manual como `python -m telegram_bot.main`. No necesitas configurar un puerto HTTP para este bot, porque utiliza polling de Telegram.
 
@@ -37,7 +37,7 @@ Si Railway no detecta el archivo automáticamente, establece el comando de inici
 
 `/start` muestra los botones **BAN** y **UNBAN**. Cada opción solicita obligatoriamente un número internacional en formato E.164, por ejemplo `+14155552671`. Tras validarlo, el bot crea un borrador HTML y vuelve al menú. `/cancel` cancela cualquier captura pendiente.
 
-El límite por defecto es de diez borradores diarios por usuario (`MAX_DAILY_DRAFTS=10`). Es un límite en memoria, por lo que para producción conviene sustituirlo por Redis o una tabla persistente y desplegar el proceso detrás de un supervisor de servicios.
+Cada operación se registra en SQLite en la tabla `operations`, con usuario, nombre de usuario, acción, número y fecha UTC. El comando `/stats` muestra totales agregados de BAN y UNBAN sin exponer el historial completo. El cooldown por defecto es de 60 segundos (`COOLDOWN_SECONDS=60`). Para conservar la base de datos en Railway, monta un volumen persistente y establece `SQLITE_PATH` dentro de ese volumen, por ejemplo `/data/telegram_bot.sqlite3`.
 
 ## Seguridad operativa
 
