@@ -1,4 +1,4 @@
-"""Bot Telegram BAN/UNBAN seguro con SQLite.
+"""Bot Telegram interno de tickets Suspender/Reactivar con SQLite.
 
 El bot genera borradores para revisión humana. No envía correos, no llama a
 WhatsApp, no realiza reportes masivos y no presenta acusaciones no verificadas
@@ -45,8 +45,8 @@ SIMULATED_CAUSES = (
 
 
 class Flow(StatesGroup):
-    waiting_ban_phone = State()
-    waiting_unban_phone = State()
+    waiting_suspend_id = State()
+    waiting_reactivate_id = State()
 
 
 class OperationDB:
@@ -60,7 +60,7 @@ class OperationDB:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER NOT NULL,
                     username TEXT,
-                    action TEXT NOT NULL CHECK(action IN ('BAN', 'UNBAN')),
+                    action TEXT NOT NULL CHECK(action IN ('SUSPENDER', 'REACTIVAR')),
                     phone TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
@@ -98,9 +98,9 @@ class OperationDB:
     def stats(self) -> tuple[int, int, int]:
         with self.connect() as conn:
             total = conn.execute("SELECT COUNT(*) FROM operations").fetchone()[0]
-            ban = conn.execute("SELECT COUNT(*) FROM operations WHERE action = 'BAN'").fetchone()[0]
-            unban = conn.execute("SELECT COUNT(*) FROM operations WHERE action = 'UNBAN'").fetchone()[0]
-        return total, ban, unban
+            suspend = conn.execute("SELECT COUNT(*) FROM operations WHERE action = 'SUSPENDER'").fetchone()[0]
+            reactivate = conn.execute("SELECT COUNT(*) FROM operations WHERE action = 'REACTIVAR'").fetchone()[0]
+        return total, suspend, reactivate
 
 
 database = OperationDB(DB_PATH)
@@ -110,8 +110,8 @@ router = Router()
 def menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔴 BAN · Reportar cuenta", callback_data="flow:ban")],
-            [InlineKeyboardButton(text="🟢 UNBAN · Apelar suspensión", callback_data="flow:unban")],
+            [InlineKeyboardButton(text="🔴 Suspender cuenta", callback_data="flow:suspend")],
+            [InlineKeyboardButton(text="🟢 Reactivar cuenta", callback_data="flow:reactivate")],
         ]
     )
 
@@ -142,13 +142,13 @@ def build_simulated_package(action: str, phone: str, template: str) -> dict[str,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "template_length": len(template),
     }
-    if action == "BAN":
+    if action == "SUSPENDER":
         package["test_causes"] = list(SIMULATED_CAUSES)
     return package
 
 
 def ban_draft(phone: str) -> str:
-    return header("REPORTE", phone) + (
+    return header("TICKET DE SUSPENSIÓN", phone) + (
         "<b>Para:</b> support@support.whatsapp.com\n"
         "<b>Asunto:</b> Solicitud de revisión de una cuenta posiblemente abusiva\n\n"
         "Hola, equipo de soporte:\n\n"
@@ -170,7 +170,7 @@ def ban_draft(phone: str) -> str:
 
 
 def unban_draft(phone: str) -> str:
-    return header("APELACIÓN", phone) + (
+    return header("SOLICITUD DE REACTIVACIÓN", phone) + (
         "<b>Para:</b> support@support.whatsapp.com\n"
         "<b>Asunto:</b> Solicitud de revisión de suspensión de cuenta\n\n"
         "Hola, equipo de soporte:\n\n"
@@ -195,22 +195,21 @@ def unban_draft(phone: str) -> str:
 async def start(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(
-        "<b>Centro de revisión BAN / UNBAN</b>\n\n"
-        "Selecciona una función. Este bot crea un borrador para revisión humana; no envía "
-        "reportes masivos ni acusa a nadie sin pruebas.",
+        "<b>Sistema interno de tickets</b>\n\n"
+        "Selecciona un módulo para generar un paquete administrativo de prueba.",
         reply_markup=menu(),
     )
 
 
 @router.message(Command("stats"))
 async def stats(message: Message) -> None:
-    total, ban, unban = database.stats()
+    total, suspend, reactivate = database.stats()
     await message.answer(
-        "<b>Estadísticas del bot</b>\n\n"
+        "<b>Estadísticas del sistema interno</b>\n\n"
         f"Operaciones registradas: <b>{total}</b>\n"
-        f"Borradores BAN: <b>{ban}</b>\n"
-        f"Borradores UNBAN: <b>{unban}</b>\n\n"
-        "Estas cifras representan borradores generados, no reportes enviados ni cuentas sancionadas.",
+        f"Tickets de suspensión: <b>{suspend}</b>\n"
+        f"Solicitudes de reactivación: <b>{reactivate}</b>\n\n"
+        "Estas cifras representan tickets de prueba procesados localmente.",
         reply_markup=menu(),
     )
 
@@ -222,36 +221,38 @@ async def show_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.message.edit_text("Selecciona una función:", reply_markup=menu())
 
 
-@router.callback_query(F.data == "flow:ban")
-async def begin_ban(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.set_state(Flow.waiting_ban_phone)
+@router.callback_query(F.data == "flow:suspend")
+async def begin_suspend(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Flow.waiting_suspend_id)
     await callback.answer()
     await callback.message.edit_text(
-        "<b>BAN · Reportar cuenta</b>\n\n"
+        "<b>Suspender cuenta</b>\n\n"
         "Escribe el número internacional incluyendo <b>+</b> y código de país.\n"
         "Ejemplo: <code>+14155552671</code>\n\n"
-        "Solo genera reportes sobre hechos reales y verificables.",
+        "Introduce un teléfono o un ID ficticio del entorno de pruebas.",
         reply_markup=back_menu(),
     )
 
 
-@router.callback_query(F.data == "flow:unban")
-async def begin_unban(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.set_state(Flow.waiting_unban_phone)
+@router.callback_query(F.data == "flow:reactivate")
+async def begin_reactivate(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Flow.waiting_reactivate_id)
     await callback.answer()
     await callback.message.edit_text(
-        "<b>UNBAN · Apelar suspensión</b>\n\n"
+        "<b>Reactivar cuenta</b>\n\n"
         "Escribe el número internacional afectado incluyendo <b>+</b> y código de país.\n"
         "Ejemplo: <code>+14155552671</code>",
         reply_markup=back_menu(),
     )
 
 
-async def handle_phone(message: Message, state: FSMContext, action: str) -> None:
-    phone = normalize_phone(message.text or "")
-    if not phone:
+async def handle_identifier(message: Message, state: FSMContext, action: str) -> None:
+    raw_identifier = (message.text or "").strip()
+    phone = normalize_phone(raw_identifier)
+    identifier = phone or (raw_identifier if re.fullmatch(r"[A-Za-z0-9_-]{3,64}", raw_identifier) else None)
+    if not identifier:
         await message.answer(
-            "El formato no es válido. Usa E.164, por ejemplo <code>+14155552671</code>.",
+            "El identificador no es válido. Usa un teléfono E.164 o un ID alfanumérico de prueba.",
             reply_markup=back_menu(),
         )
         return
@@ -264,9 +265,9 @@ async def handle_phone(message: Message, state: FSMContext, action: str) -> None
         await message.answer(f"Espera {remaining} segundos antes de crear otro borrador.")
         await state.clear()
         return
-    draft = ban_draft(phone) if action == "BAN" else unban_draft(phone)
-    package = build_simulated_package(action, phone, draft)
-    database.record(user.id, user.username, action, phone)
+    draft = ban_draft(identifier) if action == "SUSPENDER" else unban_draft(identifier)
+    package = build_simulated_package(action, identifier, draft)
+    database.record(user.id, user.username, action, identifier)
     await state.clear()
     await message.answer(
         f"<b>{SIMULATION_LABEL}</b>\n"
@@ -276,14 +277,14 @@ async def handle_phone(message: Message, state: FSMContext, action: str) -> None
     )
 
 
-@router.message(Flow.waiting_ban_phone)
-async def receive_ban_phone(message: Message, state: FSMContext) -> None:
-    await handle_phone(message, state, "BAN")
+@router.message(Flow.waiting_suspend_id)
+async def receive_suspend_id(message: Message, state: FSMContext) -> None:
+    await handle_identifier(message, state, "SUSPENDER")
 
 
-@router.message(Flow.waiting_unban_phone)
-async def receive_unban_phone(message: Message, state: FSMContext) -> None:
-    await handle_phone(message, state, "UNBAN")
+@router.message(Flow.waiting_reactivate_id)
+async def receive_reactivate_id(message: Message, state: FSMContext) -> None:
+    await handle_identifier(message, state, "REACTIVAR")
 
 
 @router.message(Command("cancel"))
