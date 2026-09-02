@@ -27,6 +27,12 @@ Desde la raíz del repositorio, inicia el bot con:
 python -m telegram_bot.main
 ```
 
+## Despliegue en Railway
+
+Crea un proyecto nuevo en Railway y selecciona **Deploy from GitHub Repo**. El repositorio ya incluye `Dockerfile` y `railway.toml`, por lo que Railway podrá construir el servicio y ejecutar el bot automáticamente. En la sección **Variables**, añade `BOT_TOKEN` con el token nuevo generado en `@BotFather`; no lo coloques en el repositorio. Puedes añadir opcionalmente `MAX_DAILY_DRAFTS` y `LOG_LEVEL`. Después pulsa **Deploy** y revisa los logs: el proceso debe permanecer activo sin mostrar el token.
+
+Si Railway no detecta el archivo automáticamente, establece el comando de inicio manual como `python -m telegram_bot.main`. No necesitas configurar un puerto HTTP para este bot, porque utiliza polling de Telegram.
+
 ## Flujo
 
 `/start` muestra los botones **BAN** y **UNBAN**. Cada opción solicita obligatoriamente un número internacional en formato E.164, por ejemplo `+14155552671`. Tras validarlo, el bot crea un borrador HTML y vuelve al menú. `/cancel` cancela cualquier captura pendiente.
