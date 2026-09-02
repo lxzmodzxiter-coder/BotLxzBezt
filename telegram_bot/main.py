@@ -44,36 +44,63 @@ SIMULATED_CAUSES = (
 )
 
 
+# FSM: cada estado espera el identificador del módulo elegido.
 class Flow(StatesGroup):
     waiting_suspend_id = State()
     waiting_reactivate_id = State()
 
 
+# Capa de persistencia local para tickets y métricas.
 class OperationDB:
     def __init__(self, path: Path) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as conn:
-            conn.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS operations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    username TEXT,
-                    action TEXT NOT NULL CHECK(action IN ('SUSPENDER', 'REACTIVAR')),
-                    phone TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS idx_operations_action ON operations(action);
-                CREATE INDEX IF NOT EXISTS idx_operations_created_at ON operations(created_at);
-                """
-            )
+            schema = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'operations'"
+            ).fetchone()
+            if schema and "SUSPENDER" not in (schema[0] or ""):
+                # Migración única desde la nomenclatura anterior BAN/UNBAN.
+                conn.execute("DROP INDEX IF EXISTS idx_operations_action")
+                conn.execute("DROP INDEX IF EXISTS idx_operations_created_at")
+                conn.execute("ALTER TABLE operations RENAME TO operations_legacy")
+                self._create_schema(conn)
+                conn.execute(
+                    """
+                    INSERT INTO operations(id, user_id, username, action, phone, created_at)
+                    SELECT id, user_id, username,
+                           CASE action WHEN 'BAN' THEN 'SUSPENDER' ELSE 'REACTIVAR' END,
+                           phone, created_at
+                    FROM operations_legacy
+                    """
+                )
+                conn.execute("DROP TABLE operations_legacy")
+            else:
+                self._create_schema(conn)
+
+    @staticmethod
+    def _create_schema(conn: sqlite3.Connection) -> None:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS operations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                username TEXT,
+                action TEXT NOT NULL CHECK(action IN ('SUSPENDER', 'REACTIVAR')),
+                phone TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_operations_action ON operations(action);
+            CREATE INDEX IF NOT EXISTS idx_operations_created_at ON operations(created_at);
+            """
+        )
 
     def connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
         return conn
 
+    # Consulta el último ticket del usuario y calcula el tiempo restante.
     def cooldown_remaining(self, user_id: int) -> int:
         with self.connect() as conn:
             row = conn.execute(
@@ -86,6 +113,7 @@ class OperationDB:
         elapsed = (datetime.now(timezone.utc) - last).total_seconds()
         return max(0, int(COOLDOWN_SECONDS - elapsed))
 
+    # Guarda una operación después de superar validación y cooldown.
     def record(self, user_id: int, username: str | None, action: str, phone: str) -> None:
         timestamp = datetime.now(timezone.utc).isoformat()
         with self.connect() as conn:
@@ -133,6 +161,7 @@ def header(kind: str, phone: str) -> str:
     return f"<b>BORRADOR DE {kind}</b>\nNúmero afectado: <code>{safe_phone}</code>\nGenerado: {now}\n\n"
 
 
+# Procesamiento autónomo del entorno de pruebas: solo crea un diccionario en memoria.
 def build_simulated_package(action: str, phone: str, template: str) -> dict[str, object]:
     """Construye un paquete en memoria; nunca hace una petición de red."""
     package: dict[str, object] = {
@@ -246,6 +275,7 @@ async def begin_reactivate(callback: CallbackQuery, state: FSMContext) -> None:
     )
 
 
+# Flujo común: valida identificador, aplica cooldown, persiste y construye el ticket.
 async def handle_identifier(message: Message, state: FSMContext, action: str) -> None:
     raw_identifier = (message.text or "").strip()
     phone = normalize_phone(raw_identifier)

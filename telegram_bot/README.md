@@ -1,6 +1,6 @@
-# Bot Telegram BAN / UNBAN
+# Sistema interno de tickets Telegram
 
-Este módulo añade un bot construido con **Python y aiogram 3**. Reproduce la navegación general de la herramienta de referencia mediante dos funciones principales: **BAN** para preparar un reporte factual y **UNBAN** para preparar una apelación de suspensión.
+Este módulo añade un bot construido con **Python y aiogram 3** para un entorno interno de pruebas. Incluye dos módulos: **Suspender cuenta** y **Reactivar cuenta**, ambos orientados a generar paquetes administrativos locales.
 
 El bot está deliberadamente limitado a la generación de borradores revisables. No envía correos, no llama a una API de WhatsApp, no genera reportes duplicados o masivos y no convierte acusaciones no verificadas en hechos. El titular debe completar la evidencia, revisar el texto y utilizar un canal oficial.
 
@@ -35,9 +35,9 @@ Si Railway no detecta el archivo automáticamente, establece el comando de inici
 
 ## Flujo
 
-`/start` muestra los botones **BAN** y **UNBAN**. Cada opción solicita obligatoriamente un número internacional en formato E.164, por ejemplo `+14155552671`. Tras validarlo, el bot crea un borrador HTML y vuelve al menú. `/cancel` cancela cualquier captura pendiente.
+`/start` muestra los botones **Suspender cuenta** y **Reactivar cuenta**. Cada opción solicita obligatoriamente un número internacional en formato E.164 o un ID alfanumérico de prueba. Tras validarlo, el bot crea un paquete local y vuelve al menú. `/cancel` cancela cualquier captura pendiente.
 
-Cada operación se registra en SQLite en la tabla `operations`, con usuario, nombre de usuario, acción, número y fecha UTC. El comando `/stats` muestra totales agregados de BAN y UNBAN sin exponer el historial completo. El cooldown por defecto es de 60 segundos (`COOLDOWN_SECONDS=60`). Para conservar la base de datos en Railway, monta un volumen persistente y establece `SQLITE_PATH` dentro de ese volumen, por ejemplo `/data/telegram_bot.sqlite3`.
+Cada operación se registra en SQLite en la tabla `operations`, con usuario, nombre de usuario, acción, identificador y fecha UTC. El comando `/stats` muestra totales agregados de suspensiones y reactivaciones. El cooldown por defecto es de 60 segundos (`COOLDOWN_SECONDS=60`). Las instalaciones previas con acciones BAN/UNBAN se migran automáticamente. Para conservar la base de datos en Railway, monta un volumen persistente y establece `SQLITE_PATH` dentro de ese volumen, por ejemplo `/data/telegram_bot.sqlite3`.
 
 ## Seguridad operativa
 
