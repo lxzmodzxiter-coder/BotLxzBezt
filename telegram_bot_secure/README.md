@@ -68,6 +68,8 @@ El comando `/setrole <user_id> <ROL>` está restringido a cuentas con rol `DUEÑ
 
 Los propietarios iniciales se configuran mediante `ADMIN_USER_IDS`, con IDs separados por comas. Al arrancar en polling o webhook, esas cuentas se crean si es necesario y se elevan a `DUEÑO`. El token del bot no concede por sí mismo permisos administrativos; la autorización se resuelve contra la base de datos en cada evento.
 
+Para un despliegue simplificado en Railway también puedes configurar `OWNER_ID` con un único ID numérico. El sistema lo incorpora automáticamente al conjunto de propietarios iniciales y conserva `ADMIN_USER_IDS` para compatibilidad. La configuración mínima recomendada es `BOT_TOKEN`, `OWNER_ID` y `DEMO_MODE=true`. No se eliminó la configuración avanzada porque podría romper servicios existentes.
+
 Ejemplo seguro de uso en un entorno de pruebas con un usuario previamente registrado:
 
 ```text

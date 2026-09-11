@@ -16,6 +16,7 @@ def _csv(value: str) -> frozenset[str]:
 @dataclass(frozen=True, slots=True)
 class Settings:
     bot_token: str
+    owner_id: int
     db_path: Path
     log_level: str
     admin_user_ids: frozenset[int]
@@ -32,10 +33,15 @@ class Settings:
         token = os.getenv("BOT_TOKEN", "").strip()
         if not token:
             raise RuntimeError("BOT_TOKEN es obligatorio")
+        owner_raw = os.getenv("OWNER_ID", "0").strip()
+        owner_id = int(owner_raw) if owner_raw.isdigit() else 0
         admin_ids = frozenset(int(x) for x in _csv(os.getenv("ADMIN_USER_IDS", "")) if x.isdigit())
+        if owner_id > 0:
+            admin_ids = admin_ids | {owner_id}
         base_url = os.getenv("PROVIDER_BASE_URL", "").strip() or None
         return cls(
             bot_token=token,
+            owner_id=owner_id,
             db_path=Path(os.getenv("SQLITE_PATH", "bot_secure.db")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             admin_user_ids=admin_ids,

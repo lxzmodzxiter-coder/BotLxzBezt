@@ -11,6 +11,7 @@ from telegram_bot_secure.security import AbuseGuard, host_is_allowed, validate_q
 def settings(tmp_path: Path) -> Settings:
     return Settings(
         bot_token="123:TEST",
+        owner_id=0,
         db_path=tmp_path / "test.db",
         log_level="INFO",
         admin_user_ids=frozenset(),
@@ -80,3 +81,14 @@ async def test_update_role_requires_existing_user_and_preserves_last_owner(tmp_p
     assert await store.update_user_role(200, "DUEÑO")
     assert await store.update_user_role(100, "VIP")
     assert (await store.ensure_user(100)).role == "VIP"
+
+
+def test_owner_id_is_merged_into_admin_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BOT_TOKEN", "123:TEST")
+    monkeypatch.setenv("OWNER_ID", "123456789")
+    monkeypatch.setenv("ADMIN_USER_IDS", "987654321")
+    from telegram_bot_secure.config import Settings
+
+    configured = Settings.from_env()
+    assert configured.owner_id == 123456789
+    assert configured.admin_user_ids == frozenset({123456789, 987654321})
