@@ -77,3 +77,7 @@ Ejemplo seguro de uso en un entorno de pruebas con un usuario previamente regist
 ```
 
 No se incluyó una ruta administrativa que cree usuarios arbitrarios a partir de un ID, porque permitiría preparar cuentas privilegiadas sin una interacción previa del usuario. Tampoco se permiten roles mediante parámetros ocultos, nombres de usuario no verificados o valores enviados desde el cliente sin validación del servidor.
+
+## Especificación maestra de interfaz UX/UI
+
+La especificación conversacional completa para menús inline, paginación, tarjetas de perfil, estados, errores, acciones CTA, roles y reglas de privacidad se encuentra en [UX_UI_MASTER_PROMPT.md](UX_UI_MASTER_PROMPT.md). El prompt debe utilizarse como guía de renderizado para mantener una interfaz consistente, móvil, accesible y de menor privilegio. La especificación conserva el modo demo y exige autorización documentada antes de mostrar datos sensibles.
