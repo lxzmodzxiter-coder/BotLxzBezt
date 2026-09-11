@@ -61,3 +61,17 @@ El entrypoint `webhook_main.py` implementa una recepción webhook con `SimpleReq
 El workflow `.github/workflows/secure-bot-ci.yml` se ejecuta en cada `push` a `main` y en cada pull request que modifique el bot, las pruebas o el propio workflow. Ejecuta la suite en Python 3.11 y 3.12, compila los módulos, utiliza la caché de pip y construye la imagen Docker con Buildx. La imagen se construye con `push: false`, por lo que el pipeline no publica artefactos ni requiere credenciales de registro.
 
 El workflow aplica permisos mínimos de solo lectura sobre el contenido del repositorio, cancela ejecuciones obsoletas de la misma rama y no carga `BOT_TOKEN`, `PROVIDER_TOKEN`, `WEBHOOK_SECRET` ni ningún otro secreto. Las pruebas funcionan con datos sintéticos y modo demo. Si posteriormente se añade publicación controlada a un registry, debe crearse un job separado protegido por un entorno de GitHub con aprobación manual, permisos explícitos y secretos de Actions limitados a ese job.
+
+## Administración de roles
+
+El comando `/setrole <user_id> <ROL>` está restringido a cuentas con rol `DUEÑO`. Los roles operativos permitidos son `FREE`, `VIP`, `PREMIUM`, `RESELLER` y `DUEÑO`. El usuario objetivo debe existir previamente, el ID debe ser positivo y el sistema impide retirar el último rol `DUEÑO` de la base de datos. El rol interno `ADMIN` se conserva únicamente para compatibilidad histórica y no puede asignarse mediante el comando.
+
+Los propietarios iniciales se configuran mediante `ADMIN_USER_IDS`, con IDs separados por comas. Al arrancar en polling o webhook, esas cuentas se crean si es necesario y se elevan a `DUEÑO`. El token del bot no concede por sí mismo permisos administrativos; la autorización se resuelve contra la base de datos en cada evento.
+
+Ejemplo seguro de uso en un entorno de pruebas con un usuario previamente registrado:
+
+```text
+/setrole 123456789 VIP
+```
+
+No se incluyó una ruta administrativa que cree usuarios arbitrarios a partir de un ID, porque permitiría preparar cuentas privilegiadas sin una interacción previa del usuario. Tampoco se permiten roles mediante parámetros ocultos, nombres de usuario no verificados o valores enviados desde el cliente sin validación del servidor.

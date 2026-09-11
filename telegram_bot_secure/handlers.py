@@ -9,6 +9,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from .keyboards import CATEGORIES, category_keyboard, home_keyboard, service_keyboard
+from .db import VALID_ROLES, Account, CreditStore
 from .security import AbuseGuard, validate_query
 from .services import ProviderClient
 
@@ -18,6 +19,41 @@ router = Router()
 
 class DemoState(StatesGroup):
     waiting_query = State()
+
+
+@router.message(Command("setrole"))
+async def set_role(message: Message, store: CreditStore, account: Account) -> None:
+    if account.role != "DUEÑO":
+        await message.answer("Comando exclusivo para el DUEÑO del bot.")
+        return
+    args = (message.text or "").split()
+    if len(args) != 3:
+        await message.answer("Uso correcto: /setrole <user_id> <FREE|VIP|PREMIUM|RESELLER|DUEÑO>")
+        return
+    try:
+        target_id = int(args[1])
+    except ValueError:
+        await message.answer("El ID de usuario debe ser un número entero válido.")
+        return
+    if target_id <= 0:
+        await message.answer("El ID de usuario debe ser positivo.")
+        return
+    new_role = args[2].upper()
+    if new_role not in VALID_ROLES or new_role == "ADMIN":
+        await message.answer("Rol inválido. Usa FREE, VIP, PREMIUM, RESELLER o DUEÑO.")
+        return
+    if not await store.user_exists(target_id):
+        await message.answer("No se encontró un usuario registrado con ese ID.")
+        return
+    try:
+        updated = await store.update_user_role(target_id, new_role)
+    except ValueError as exc:
+        await message.answer(str(exc))
+        return
+    if updated:
+        await message.answer(f"Usuario {target_id} actualizado al rol {new_role}.")
+    else:
+        await message.answer("No se pudo actualizar el rol.")
 
 
 @router.message(CommandStart())

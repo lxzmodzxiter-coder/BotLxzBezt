@@ -66,3 +66,17 @@ async def test_credit_transactions_are_idempotent(tmp_path: Path) -> None:
         await store.apply_transaction("consume-2", 42, 99, "CONSUME", "too-much")
     account = await store.ensure_user(42)
     assert account.credits == 7
+
+
+@pytest.mark.asyncio
+async def test_update_role_requires_existing_user_and_preserves_last_owner(tmp_path: Path) -> None:
+    store = CreditStore(tmp_path / "roles.db")
+    await store.ensure_user(100)
+    await store.ensure_user(200)
+    assert not await store.update_user_role(999, "VIP")
+    assert await store.update_user_role(100, "DUEÑO")
+    with pytest.raises(ValueError, match="último rol DUEÑO"):
+        await store.update_user_role(100, "VIP")
+    assert await store.update_user_role(200, "DUEÑO")
+    assert await store.update_user_role(100, "VIP")
+    assert (await store.ensure_user(100)).role == "VIP"

@@ -21,6 +21,9 @@ async def main() -> None:
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     store = CreditStore(settings.db_path)
+    for owner_id in settings.admin_user_ids:
+        await store.ensure_user(owner_id)
+        await store.update_user_role(owner_id, "DUEÑO")
     dp["guard"] = AbuseGuard(settings)
     dp["provider"] = ProviderClient(settings)
     dp["store"] = store
