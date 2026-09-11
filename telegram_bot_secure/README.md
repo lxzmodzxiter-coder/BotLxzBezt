@@ -41,3 +41,15 @@ telegram_bot_secure/
 ## Licencia y uso
 
 Este código debe emplearse únicamente con servicios propios o con proveedores que hayan concedido autorización documentada. La plantilla no concede permiso para consultar registros públicos o privados, ni garantiza que un proveedor comercial esté autorizado por una entidad estatal. Antes de activar una integración real, completa una revisión de privacidad, seguridad y cumplimiento.
+
+## Pruebas y operación segura
+
+Para instalar las dependencias de desarrollo ejecuta `pip install -r telegram_bot_secure/requirements-dev.txt` y después `pytest -q`. Las pruebas cubren validación de consultas, rechazo de hosts no allowlisted, cooldown por usuario, cobertura de páginas del teclado y transacciones idempotentes de créditos. Las pruebas no conectan con Telegram ni con proveedores externos.
+
+`db.py` utiliza SQLite en modo WAL y una tabla `credit_transactions` con `idempotency_key` única. La inserción y actualización de saldo se ejecutan dentro de una transacción. Un reintento con la misma clave no vuelve a aplicar la operación. Para una escala mayor, sustituye esta implementación por PostgreSQL con aislamiento transaccional y conserva la misma garantía de idempotencia.
+
+`middleware.py` crea o recupera una cuenta por evento y expone el contexto de cuenta al handler. Los roles permitidos son `FREE`, `VIP` y `ADMIN`. Los módulos sensibles deben añadir una política explícita de autorización antes de permitir cualquier operación real; la plantilla no habilita esas consultas.
+
+`logging_json.py` emite eventos JSON con fecha, nivel, logger y mensaje truncado. Los handlers y clientes no deben incluir DNI, nombres, placas, tokens, firmas, fotografías, huellas, domicilios ni respuestas completas en el mensaje de log.
+
+Para ejecutar con Docker, copia `.env.example` a `.env`, conserva `DEMO_MODE=true`, y ejecuta `docker compose up --build`. El contenedor usa un usuario sin privilegios, filesystem de solo lectura, volumen separado para SQLite, `no-new-privileges` y eliminación de capacidades Linux. Para una operación webhook con TLS, coloca un reverse proxy administrado delante del contenedor, termina TLS allí, reenvía solo al puerto interno y configura un secreto de webhook. No guardes certificados ni secretos en Git. El modo incluido usa long polling para mantener la plantilla autocontenida; el cambio a webhook debe hacerse solo en un entorno con URL pública HTTPS y controles de red.

@@ -26,11 +26,11 @@ class AbuseGuard:
 
 
 def validate_query(value: str) -> str:
+    if any(ord(ch) < 32 for ch in value):
+        raise ValueError("La consulta contiene caracteres no permitidos.")
     value = re.sub(r"\s+", " ", value.strip())
     if not 2 <= len(value) <= 120:
         raise ValueError("La consulta debe tener entre 2 y 120 caracteres.")
-    if any(ord(ch) < 32 for ch in value):
-        raise ValueError("La consulta contiene caracteres no permitidos.")
     return value
 
 

@@ -1,0 +1,21 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DEMO_MODE: "true"
+      SQLITE_PATH: /data/bot_secure.db
+    volumes:
+      - bot_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  bot_data:

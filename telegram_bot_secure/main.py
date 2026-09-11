@@ -7,18 +7,25 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from .config import Settings
+from .db import CreditStore
 from .handlers import router
+from .logging_json import configure_json_logging
+from .middleware import AccountMiddleware
 from .security import AbuseGuard
 from .services import ProviderClient
 
 
 async def main() -> None:
     settings = Settings.from_env()
-    logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    configure_json_logging(settings.log_level)
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
+    store = CreditStore(settings.db_path)
     dp["guard"] = AbuseGuard(settings)
     dp["provider"] = ProviderClient(settings)
+    dp["store"] = store
+    router.message.middleware(AccountMiddleware(store))
+    router.callback_query.middleware(AccountMiddleware(store))
     dp.include_router(router)
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
